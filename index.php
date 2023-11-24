@@ -1,16 +1,55 @@
 <?php
 session_start();
+$h = date("H");
+
+date_default_timezone_set( 'CET' );
+
+function isDelay($h) {
+    $delay = false;
+    if($h >= 8) {
+        $delay = true;
+    }
+}
+
+function forbiddenTime($h) {
+    if($h >= 20 && $h <= 24) {
+        die("Nepodarilo sa zapisat cas pretoze je neplatny");
+    }
+}
 
 function addToHistory($entry) {
     if(!isset($_SESSION['history'])) {
         $_SESSION['history'] = array();
     }
     array_push($_SESSION['history'], $entry);
+
+    saveSessionToJson();
 }
 
-if(isset($_POST['addEntry'])) {
-    addToHistory(date('Y-m-d, H:i:s'));
+function saveSessionToJson() {
+    $txtFilePath = 'session_data.txt';
+    if($delay = true) {
+        file_put_contents($txtFilePath, date('d-m-Y, H:i:s') . " - meskanie\n", FILE_APPEND);
+    }
 }
+
+function getLogs() {
+    $txtFilePath = 'session_data.txt';
+
+    if(file_exists($txtFilePath)) {
+        $txtContent = file_get_contents($txtFilePath);
+        echo nl2br("$txtContent\n");
+    }
+}
+
+if (isset($_POST['addEntry'])) {
+    addToHistory(date('d-m-Y, H:i:s'));
+}
+
+forbiddenTime($h);
+
+
+
 ?>
 
 <!DOCTYPE html>
@@ -27,12 +66,10 @@ if(isset($_POST['addEntry'])) {
         <input type="submit" name="addEntry" value="Add Entry">
         <ul id="historyList">
         <?php 
-        echo "Current Date and Time: " . date('Y-m-d, H:i:s');
-            if(isset($_SESSION['history'])) {
-                foreach($_SESSION['history'] as $entry) {
-                    echo "<li>$entry</li>";
-                }
-            }
+        date_default_timezone_set( 'CET' );
+        echo "Current Date and Time: " . date('d-m-Y, H:i:s');
+        echo "</br>";
+        getLogs();
         ?>
         </ul>
     </form>
