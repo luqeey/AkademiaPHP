@@ -11,11 +11,6 @@ function isDelay($h) {
     }
 }
 
-function forbiddenTime($h) {
-    if($h >= 20 && $h <= 24) {
-        die("Nepodarilo sa zapisat cas pretoze je neplatny");
-    }
-}
 
 function addToHistory($entry) {
     if(!isset($_SESSION['history'])) {
@@ -23,13 +18,18 @@ function addToHistory($entry) {
     }
     array_push($_SESSION['history'], $entry);
 
-    saveSessionToJson();
 }
 
-function saveSessionToJson() {
+function saveSessionToTxt($h) {
     $txtFilePath = 'session_data.txt';
+    if($h >= 20 && $h <= 24) {
+        die("Nepodarilo sa zapisat cas pretoze je neplatny.");
+    }
+
     if($delay = true) {
         file_put_contents($txtFilePath, date('d-m-Y, H:i:s') . " - meskanie\n", FILE_APPEND);
+    } else {
+        file_put_contents($txtFilePath, date('d-m-Y, H:i:s') . "\n", FILE_APPEND);
     }
 }
 
@@ -44,9 +44,9 @@ function getLogs() {
 
 if (isset($_POST['addEntry'])) {
     addToHistory(date('d-m-Y, H:i:s'));
+    saveSessionToTxt($h);
 }
 
-forbiddenTime($h);
 
 
 
