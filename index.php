@@ -16,18 +16,18 @@ function isDelay($h, &$delay) {
 
 function addToHistory($entry) {
     if(!isset($_SESSION['history'])) {
-        $_SESSION['history'] = array();
+        $_SESSION['history'] = [];
     }
     $_SESSION['history'][] = $entry;
 
 }
 
 function saveSessionToTxt($h, &$delay) {
-    if($h >= 20 && $h <= 24) {
+    if($h >= 23 && $h <= 24) {
         die("Nepodarilo sa zapisat cas pretoze je neplatny.");
     }
 
-    if($delay == true) {
+    if($delay = true) {
         file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . " - meskanie\n", FILE_APPEND);
     } else {
         file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . "\n", FILE_APPEND);
@@ -35,7 +35,6 @@ function saveSessionToTxt($h, &$delay) {
 }
 
 function getLogs() {
-    $txtFilePath = 'session_data.txt';
 
     if(file_exists(TXT_FILE_PATH)) {
         $txtContent = file_get_contents(TXT_FILE_PATH);
