@@ -23,7 +23,7 @@ function addToHistory($entry) {
 }
 
 function saveSessionToTxt($h, &$delay) {
-    if($h >= 23 && $h <= 24) {
+    if($h >= 20 && $h <= 24) {
         die("Nepodarilo sa zapisat cas pretoze je neplatny.");
     }
 
