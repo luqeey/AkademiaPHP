@@ -5,10 +5,12 @@ session_start();
 $h = date("H");
 $delay = false;
 
-date_default_timezone_set( 'CET' );
+date_default_timezone_set( 'Europe/Bratislava' );
 
-function isDelay($h, &$delay) {
-    if ($h >= 8) {
+function isDelay($delay) {
+    $now = new DateTime();
+    $currentHour = (int)$now->format('H');
+    if ($currentHour >= 8) {
         $delay = true;
     }
 }
@@ -22,8 +24,11 @@ function addToHistory($entry) {
 
 }
 
-function saveSessionToTxt($h, &$delay) {
-    if ($h >= 20 && $h <= 24) {
+function saveSessionToTxt($delay) {
+    $now = new DateTime();
+    $currentHour = (int)$now->format('H');
+
+    if ($currentHour >= 20 && $currentHour <= 24) {
         die("Nepodarilo sa zapisat cas pretoze je neplatny.");
     }
 
@@ -43,9 +48,9 @@ function getLogs() {
 }
 
 if (isset($_POST['addEntry'])) {
+    isDelay($h, $delay);
     addToHistory(date('d-m-Y, H:i:s'));
     saveSessionToTxt($h, $delay);
-    isDelay($h, $delay);
 }
 
 
