@@ -23,11 +23,11 @@ function addToHistory($entry) {
 }
 
 function saveSessionToTxt($h, &$delay) {
-    if($h >= 20 && $h <= 24) {
+    if ($h >= 20 && $h <= 24) {
         die("Nepodarilo sa zapisat cas pretoze je neplatny.");
     }
 
-    if($delay = true) {
+    if ($delay == true) {
         file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . " - meskanie\n", FILE_APPEND);
     } else {
         file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . "\n", FILE_APPEND);
