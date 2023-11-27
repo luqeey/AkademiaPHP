@@ -1,13 +1,16 @@
 <?php
-define('TXT_FILE_PATH', 'session_data.txt');
+define('JSON_FILE_PATH', 'all.json');
+define('STUDENTS_PATH', 'students.json');
+define('ARRIVALS_PATH', 'arrivals.json');
 
 session_start();
 $h = date("H");
 $delay = false;
 
-date_default_timezone_set( 'Europe/Bratislava' );
+date_default_timezone_set('Europe/Bratislava');
 
-function isDelay($delay) {
+function isDelay(&$delay)
+{
     $now = new DateTime();
     $currentHour = (int)$now->format('H');
     if ($currentHour >= 8) {
@@ -15,16 +18,20 @@ function isDelay($delay) {
     }
 }
 
-
-function addToHistory($entry) {
-    if(!isset($_SESSION['history'])) {
+function addToHistory($entry, $name)
+{
+    if (!isset($_SESSION['history'])) {
         $_SESSION['history'] = [];
     }
-    $_SESSION['history'][] = $entry;
-
+    $entryWithStudent = [
+        'time' => $entry,
+        'name' => $name
+    ];
+    array_push($_SESSION['history'], $entryWithStudent);
 }
 
-function saveSessionToTxt($delay) {
+function saveSessionToJson($delay, $name)
+{
     $now = new DateTime();
     $currentHour = (int)$now->format('H');
 
@@ -32,29 +39,79 @@ function saveSessionToTxt($delay) {
         die("Nepodarilo sa zapisat cas pretoze je neplatny.");
     }
 
+    $entry = ['time' => date('d-m-Y, H:i:s'), 'name' => $name];
     if ($delay == true) {
-        file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . " - meskanie\n", FILE_APPEND);
-    } else {
-        file_put_contents(TXT_FILE_PATH, date('d-m-Y, H:i:s') . "\n", FILE_APPEND);
+        $entry['status'] = 'meskanie';
     }
+
+    $jsonContent = [];
+    if (file_exists(JSON_FILE_PATH)) {
+        $jsonContent = json_decode(file_get_contents(JSON_FILE_PATH), true);
+    }
+
+    $jsonContent[] = $entry;
+    file_put_contents(JSON_FILE_PATH, json_encode($jsonContent, JSON_PRETTY_PRINT));
+
+}
+
+class Students {
+    public static function saveStudent($name) {
+        $jsonStudents = [];
+        if (file_exists(STUDENTS_PATH)) {
+            $jsonStudents = json_decode(file_get_contents(STUDENTS_PATH), true);
+            // print_r($jsonStudents);
+        }
+    
+        $orderNumber = count($jsonStudents) + 1;
+    
+        $jsonStudents[] = ['order' => $orderNumber, 'name' => $name];
+        file_put_contents(STUDENTS_PATH, json_encode($jsonStudents, JSON_PRETTY_PRINT));
+    }
+}
+
+class Arrivals {
+    public static function saveArrival() { 
+        $arrivals = [];
+        if(file_exists(ARRIVALS_PATH)) {
+            $arrivals = json_decode(file_get_contents(ARRIVALS_PATH), true);
+        }
+        
+        $arrivals[] = ['time' => date('d-m-Y, H:i:s')];
+        file_put_contents(ARRIVALS_PATH, json_encode($arrivals, JSON_PRETTY_PRINT));
+    }    
 }
 
 function getLogs() {
+    if (file_exists(JSON_FILE_PATH)) {
+        $jsonContent = json_decode(file_get_contents(JSON_FILE_PATH), true);
 
-    if(file_exists(TXT_FILE_PATH)) {
-        $txtContent = file_get_contents(TXT_FILE_PATH);
-        echo nl2br("$txtContent\n");
+        foreach ($jsonContent as $entry) {
+            echo $entry['time'];
+
+            if (isset($entry['status'])) {
+                echo " - " . $entry['status'];
+            }
+            if (isset($entry['name'])) {
+                echo " MENO: " . $entry['name'];
+            }
+            echo "<br>";
+        }
     }
 }
 
-if (isset($_POST['addEntry'])) {
-    isDelay($h, $delay);
-    addToHistory(date('d-m-Y, H:i:s'));
-    saveSessionToTxt($h, $delay);
+
+if (isset($_GET['addEntry'])) {
+    isDelay($delay);
+    if(!empty($_GET['addName'])) {
+        $studentName = $_GET['addName'];
+        addToHistory(date('d-m-Y, H:i:s'), $studentName);
+        saveSessionToJson($delay, $studentName);
+        Students::saveStudent($studentName);
+        Arrivals::saveArrival();
+    } else {
+        echo "Prosim zadaj svoje meno";
+    }
 }
-
-
-
 
 ?>
 
@@ -68,8 +125,9 @@ if (isset($_POST['addEntry'])) {
 <body>
 
 <h1>Prichody</h1>
-    <form method="post">
+    <form method="get">
         <input type="submit" name="addEntry" value="Add Entry">
+        <input type="text" name="addName" placeholder="Meno studenta" required>
         <?php 
         date_default_timezone_set( 'CET' );
         echo "Current Date and Time: " . date('d-m-Y, H:i:s');
