@@ -5,21 +5,10 @@ define('ARRIVALS_PATH', 'arrivals.json');
 
 session_start();
 $h = date("H");
-$delay = false;
 
 date_default_timezone_set('Europe/Bratislava');
 
-function isDelay(&$delay)
-{
-    $now = new DateTime();
-    $currentHour = (int)$now->format('H');
-    if ($currentHour >= 8) {
-        $delay = true;
-    }
-}
-
-function addToHistory($entry, $name)
-{
+function addToHistory($entry, $name) {
     if (!isset($_SESSION['history'])) {
         $_SESSION['history'] = [];
     }
@@ -30,55 +19,82 @@ function addToHistory($entry, $name)
     array_push($_SESSION['history'], $entryWithStudent);
 }
 
-function saveSessionToJson($delay, $name)
-{
-    $now = new DateTime();
-    $currentHour = (int)$now->format('H');
-
-    if ($currentHour >= 20 && $currentHour <= 24) {
-        die("Nepodarilo sa zapisat cas pretoze je neplatny.");
+class AllInfos {
+    private static function isDelayOccurred()
+    {
+        $now = new DateTime();
+        $currentHour = (int)$now->format('H');
+        return $currentHour >= 8;
     }
 
-    $entry = ['time' => date('d-m-Y, H:i:s'), 'name' => $name];
-    if ($delay == true) {
-        $entry['status'] = 'meskanie';
+    public static function saveSessionToJson($name)
+    {
+        $now = new DateTime();
+        $currentHour = (int)$now->format('H');
+
+        if ($currentHour >= 20 && $currentHour <= 24) {
+            die("Nepodarilo sa zapisat cas pretoze je neplatny.");
+        }
+
+        $entry = ['time' => date('d-m-Y, H:i:s'), 'name' => $name];
+        if (self::isDelayOccurred()) {
+            $entry['status'] = 'meskanie';
+        }
+
+        $jsonContent = [];
+        if (file_exists(JSON_FILE_PATH)) {
+            $jsonContent = json_decode(file_get_contents(JSON_FILE_PATH), true);
+        }
+
+        $jsonContent[] = $entry;
+        file_put_contents(JSON_FILE_PATH, json_encode($jsonContent, JSON_PRETTY_PRINT));
     }
-
-    $jsonContent = [];
-    if (file_exists(JSON_FILE_PATH)) {
-        $jsonContent = json_decode(file_get_contents(JSON_FILE_PATH), true);
-    }
-
-    $jsonContent[] = $entry;
-    file_put_contents(JSON_FILE_PATH, json_encode($jsonContent, JSON_PRETTY_PRINT));
-
 }
 
 class Students {
-    public static function saveStudent($name) {
+    public static function saveStudent($name)
+    {
         $jsonStudents = [];
         if (file_exists(STUDENTS_PATH)) {
             $jsonStudents = json_decode(file_get_contents(STUDENTS_PATH), true);
-            // print_r($jsonStudents);
         }
-    
+
         $orderNumber = count($jsonStudents) + 1;
-    
+
         $jsonStudents[] = ['order' => $orderNumber, 'name' => $name];
         file_put_contents(STUDENTS_PATH, json_encode($jsonStudents, JSON_PRETTY_PRINT));
     }
 }
 
 class Arrivals {
-    public static function saveArrival() { 
+    private static function isDelayOccurred()
+    {
+        $now = new DateTime();
+        $currentHour = (int)$now->format('H');
+        return $currentHour >= 8 && $currentHour <= 20;
+    }
+
+    private static function getDelayStatus()
+    {
+        return self::isDelayOccurred() ? 'meskanie' : null;
+    }
+
+    public static function saveArrival()
+    {
         $arrivals = [];
-        if(file_exists(ARRIVALS_PATH)) {
+        if (file_exists(ARRIVALS_PATH)) {
             $arrivals = json_decode(file_get_contents(ARRIVALS_PATH), true);
         }
-        
-        $arrivals[] = ['time' => date('d-m-Y, H:i:s')];
+
+        $delayStatus = self::getDelayStatus();
+
+        $arrivals[] = [
+            'time' => date('d-m-Y, H:i:s'),
+            'status' => $delayStatus
+        ];
+
         file_put_contents(ARRIVALS_PATH, json_encode($arrivals, JSON_PRETTY_PRINT));
-    }    
+    }
 }
 
 function getLogs() {
@@ -92,27 +108,24 @@ function getLogs() {
                 echo " - " . $entry['status'];
             }
             if (isset($entry['name'])) {
-                echo " MENO: " . $entry['name'];
+                echo " - MENO: " . $entry['name'];
             }
             echo "<br>";
         }
     }
 }
 
-
 if (isset($_GET['addEntry'])) {
-    isDelay($delay);
-    if(!empty($_GET['addName'])) {
+    if (!empty($_GET['addName'])) {
         $studentName = $_GET['addName'];
         addToHistory(date('d-m-Y, H:i:s'), $studentName);
-        saveSessionToJson($delay, $studentName);
+        AllInfos::saveSessionToJson($studentName);
         Students::saveStudent($studentName);
         Arrivals::saveArrival();
     } else {
         echo "Prosim zadaj svoje meno";
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -125,16 +138,16 @@ if (isset($_GET['addEntry'])) {
 <body>
 
 <h1>Prichody</h1>
-    <form method="get">
-        <input type="submit" name="addEntry" value="Add Entry">
-        <input type="text" name="addName" placeholder="Meno studenta" required>
-        <?php 
-        date_default_timezone_set( 'CET' );
-        echo "Current Date and Time: " . date('d-m-Y, H:i:s');
-        echo "</br>";
-        getLogs();
-        ?>
-    </form>
+<form method="get">
+    <input type="submit" name="addEntry" value="Add Entry">
+    <input type="text" name="addName" placeholder="Meno studenta" required>
+    <?php
+    date_default_timezone_set('CET');
+    echo "Current Date and Time: " . date('d-m-Y, H:i:s');
+    echo "</br>";
+    getLogs();
+    ?>
+</form>
 
 </body>
 </html>
