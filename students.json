@@ -1,10 +1,12 @@
 [
     {
         "order": 1,
-        "name": "Lukas Elias"
+        "name": "Lukas Elias",
+        "number_of_loggs": 2
     },
     {
         "order": 2,
-        "name": "Istvan"
+        "name": "Igor",
+        "number_of_loggs": 1
     }
 ]

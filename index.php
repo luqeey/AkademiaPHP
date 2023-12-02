@@ -16,17 +16,19 @@ function addToHistory($entry, $name) {
         'time' => $entry,
         'name' => $name
     ];
-    array_push($_SESSION['history'], $entryWithStudent);
+    $array[] = $entryWithStudent;
 }
 
-class AllInfos {
-    private static function isDelayOccurred()
+class TimeChecker {
+    public static function isDelayOccurred()
     {
         $now = new DateTime();
         $currentHour = (int)$now->format('H');
-        return $currentHour >= 8;
+        return $currentHour >= 8 && $currentHour <= 20;
     }
+}
 
+class AllInfos {
     public static function saveSessionToJson($name)
     {
         $now = new DateTime();
@@ -37,7 +39,7 @@ class AllInfos {
         }
 
         $entry = ['time' => date('d-m-Y, H:i:s'), 'name' => $name];
-        if (self::isDelayOccurred()) {
+        if (TimeChecker::isDelayOccurred()) {
             $entry['status'] = 'meskanie';
         }
 
@@ -59,26 +61,26 @@ class Students {
             $jsonStudents = json_decode(file_get_contents(STUDENTS_PATH), true);
         }
 
-        $orderNumber = count($jsonStudents) + 1;
+        $found = false;
+        foreach ($jsonStudents as &$student) {
+            if ($student['name'] === $name) {
+                $student['number_of_loggs'] = ($student['number_of_loggs'] ?? 0) + 1;
+                $found = true;
+                break;
+            }
+        }
 
-        $jsonStudents[] = ['order' => $orderNumber, 'name' => $name];
+        if (!$found) {
+            $orderNumber = count($jsonStudents) + 1;
+            $jsonStudents[] = ['order' => $orderNumber, 'name' => $name, 'number_of_loggs' => 1];
+        }
+
         file_put_contents(STUDENTS_PATH, json_encode($jsonStudents, JSON_PRETTY_PRINT));
     }
 }
 
+
 class Arrivals {
-    private static function isDelayOccurred()
-    {
-        $now = new DateTime();
-        $currentHour = (int)$now->format('H');
-        return $currentHour >= 8 && $currentHour <= 20;
-    }
-
-    private static function getDelayStatus()
-    {
-        return self::isDelayOccurred() ? 'meskanie' : null;
-    }
-
     public static function saveArrival()
     {
         $arrivals = [];
@@ -86,7 +88,7 @@ class Arrivals {
             $arrivals = json_decode(file_get_contents(ARRIVALS_PATH), true);
         }
 
-        $delayStatus = self::getDelayStatus();
+        $delayStatus = TimeChecker::isDelayOccurred() ? 'meskanie' : null;
 
         $arrivals[] = [
             'time' => date('d-m-Y, H:i:s'),
